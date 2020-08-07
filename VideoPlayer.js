@@ -55,11 +55,6 @@ export default class VideoPlayer extends Component {
         };
 
         /**
-        * For audio playing instead of video
-        */
-        this.audioOnly = props.type === "audio";
-
-        /**
          * Any options that can be set at init.
          */
         this.opts = {
@@ -103,7 +98,7 @@ export default class VideoPlayer extends Component {
             volumeWidth: 150,
             iconOffset: 7,
             seekWidth: 0,
-            ref: this.audioOnly ? Sound : Video,
+            ref: Video,
         };
 
         /**
@@ -134,6 +129,20 @@ export default class VideoPlayer extends Component {
             videoStyle: this.props.videoStyle || {},
             containerStyle: this.props.style || {}
         };
+
+        /**
+        * For audio playing instead of video
+        */
+        if (this.props.type === "audio") {
+          this.audio = {
+            onLoad: this._onLoadAudio.bind ( this ),
+          }
+
+          this.state.loading = true;
+
+          this.state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad)
+          this.state.sound.setCategory("Playback");
+        }
     }
 
 
@@ -159,28 +168,27 @@ export default class VideoPlayer extends Component {
         this.loadAnimation();
         this.setState( state );
 
-        if (this.audioOnly) {
-          state.sound = new Sound(this.props.url, Sound.MAIN_BUNDLE, this._audioOnlyCallback);
-        }
-
         if ( typeof this.props.onLoadStart === 'function' ) {
             this.props.onLoadStart(...arguments);
         }
     }
 
-    _audioOnlyCallback( error ) {
+    _onLoadAudio( error ) {
       if (error) {
-        this._onError(error);
+        this.onError(error);
+        console.warn("error")
+        console.warn(error)
         return;
       }
-      this._onLoad(data);
+      console.warn("finished loading");
       this.state.sound.play((success) => {
         if (success) {
-          this._onEnd()
+          this.onEnd()
         } else {
-          this._onError()
+          this.onError()
         }
       });
+      this.events.onLoad();
     }
 
     /**
@@ -193,7 +201,7 @@ export default class VideoPlayer extends Component {
     _onLoad( data = {} ) {
         let state = this.state;
 
-        state.duration = this.audioOnly ? data.getDuration() : data.duration;
+        state.duration = this.audio ? state.sound.getDuration() : data.duration;
         state.loading = false;
         this.setState( state );
 
@@ -301,6 +309,13 @@ export default class VideoPlayer extends Component {
      */
     clearControlTimeout() {
         clearTimeout( this.player.controlTimeout );
+    }
+
+    /**
+    * Clear the audio if necessary
+    */
+    clearSound() {
+      this.state.sound.release();
     }
 
     /**
@@ -654,7 +669,6 @@ export default class VideoPlayer extends Component {
     componentWillMount() {
         this.initSeekPanResponder();
         this.initVolumePanResponder();
-        this.audioOnly ? this.initAudioPlayer();
     }
 
     /**
@@ -688,6 +702,7 @@ export default class VideoPlayer extends Component {
      */
     componentWillUnmount() {
         this.clearControlTimeout();
+        this.clearSound();
     }
 
     /**
@@ -841,7 +856,7 @@ export default class VideoPlayer extends Component {
 
         const backControl = !this.props.disableBack ? this.renderBack() : this.renderNullControl();
         const volumeControl = !this.props.disableVolume ? this.renderVolume() : this.renderNullControl();
-        const fullscreenControl = (!this.props.disableFullscreen && !this.audioOnly) ? this.renderFullscreen() : this.renderNullControl();
+        const fullscreenControl = (!this.props.disableFullscreen && !this.audio) ? this.renderFullscreen() : this.renderNullControl();
 
         return(
             <Animated.View style={[
@@ -1085,49 +1100,39 @@ export default class VideoPlayer extends Component {
     * Render audio/video based on props
     */
     renderMedia() {
-      return this.audioOnly ? (
-        <Sound
-            { ...this.props }
-            ref={ videoPlayer => this.player.ref = videoPlayer }
+      if (this.audio) {
+        var sound = this.state.sound;
 
-            resizeMode={ this.state.resizeMode }
-            volume={ this.state.volume }
-            paused={ this.state.paused }
-            muted={ this.state.muted }
-            rate={ this.state.rate }
+        sound.setVolume(this.state.volume);
+        if (this.state.muted)
+          sound.setVolume(0);
+        if (this.state.paused)
+          sound.pause();
 
-            onLoadStart={ this.events.onLoadStart }
-            onProgress={ this.events.onProgress }
-            onError={ this.events.onError }
-            onLoad={ this.events.onLoad }
-            onEnd={ this.events.onEnd }
+      } else {
+        return (
+          <Video
+              { ...this.props }
+              ref={ videoPlayer => this.player.ref = videoPlayer }
 
-            style={[ styles.player.video, this.styles.videoStyle ]}
+              resizeMode={ this.state.resizeMode }
+              volume={ this.state.volume }
+              paused={ this.state.paused }
+              muted={ this.state.muted }
+              rate={ this.state.rate }
 
-            source={ this.props.source }
-        />
-      ) : (
-        <Video
-            { ...this.props }
-            ref={ videoPlayer => this.player.ref = videoPlayer }
+              onLoadStart={ this.events.onLoadStart }
+              onProgress={ this.events.onProgress }
+              onError={ this.events.onError }
+              onLoad={ this.events.onLoad }
+              onEnd={ this.events.onEnd }
 
-            resizeMode={ this.state.resizeMode }
-            volume={ this.state.volume }
-            paused={ this.state.paused }
-            muted={ this.state.muted }
-            rate={ this.state.rate }
+              style={[ styles.player.video, this.styles.videoStyle ]}
 
-            onLoadStart={ this.events.onLoadStart }
-            onProgress={ this.events.onProgress }
-            onError={ this.events.onError }
-            onLoad={ this.events.onLoad }
-            onEnd={ this.events.onEnd }
-
-            style={[ styles.player.video, this.styles.videoStyle ]}
-
-            source={ this.props.source }
-        />
-      );
+              source={ this.props.source }
+          />
+        );
+      }
     }
 
     /**
