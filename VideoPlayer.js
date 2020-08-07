@@ -24,11 +24,6 @@ export default class VideoPlayer extends Component {
         super( props );
 
         /**
-        * For audio playing instead of video
-        */
-        const audioOnly = props.type === "audio";
-
-        /**
          * All of our values that are updated by the
          * methods and listeners in this class
          */
@@ -58,6 +53,11 @@ export default class VideoPlayer extends Component {
             error: false,
             duration: 0,
         };
+
+        /**
+        * For audio playing instead of video
+        */
+        this.audioOnly = props.type === "audio";
 
         /**
          * Any options that can be set at init.
@@ -159,9 +159,28 @@ export default class VideoPlayer extends Component {
         this.loadAnimation();
         this.setState( state );
 
+        if (this.audioOnly) {
+          state.sound = new Sound(this.props.url, Sound.MAIN_BUNDLE, this._audioOnlyCallback);
+        }
+
         if ( typeof this.props.onLoadStart === 'function' ) {
             this.props.onLoadStart(...arguments);
         }
+    }
+
+    _audioOnlyCallback( error ) {
+      if (error) {
+        this._onError(error);
+        return;
+      }
+      this._onLoad(data);
+      this.state.sound.play((success) => {
+        if (success) {
+          this._onEnd()
+        } else {
+          this._onError()
+        }
+      });
     }
 
     /**
@@ -174,7 +193,7 @@ export default class VideoPlayer extends Component {
     _onLoad( data = {} ) {
         let state = this.state;
 
-        state.duration = data.duration;
+        state.duration = this.audioOnly ? data.getDuration() : data.duration;
         state.loading = false;
         this.setState( state );
 
@@ -635,6 +654,7 @@ export default class VideoPlayer extends Component {
     componentWillMount() {
         this.initSeekPanResponder();
         this.initVolumePanResponder();
+        this.audioOnly ? this.initAudioPlayer();
     }
 
     /**
@@ -821,7 +841,7 @@ export default class VideoPlayer extends Component {
 
         const backControl = !this.props.disableBack ? this.renderBack() : this.renderNullControl();
         const volumeControl = !this.props.disableVolume ? this.renderVolume() : this.renderNullControl();
-        const fullscreenControl = (!this.props.disableFullscreen || this.audioOnly) ? this.renderFullscreen() : this.renderNullControl();
+        const fullscreenControl = (!this.props.disableFullscreen && !this.audioOnly) ? this.renderFullscreen() : this.renderNullControl();
 
         return(
             <Animated.View style={[
@@ -1065,7 +1085,7 @@ export default class VideoPlayer extends Component {
     * Render audio/video based on props
     */
     renderMedia() {
-      this.audioOnly ? (
+      return this.audioOnly ? (
         <Sound
             { ...this.props }
             ref={ videoPlayer => this.player.ref = videoPlayer }
