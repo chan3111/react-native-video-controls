@@ -26,7 +26,7 @@ export default class VideoPlayer extends Component {
         /**
         * For audio playing instead of video
         */
-        const audioOnly = props.format === "audio";
+        const audioOnly = props.type === "audio";
 
         /**
          * All of our values that are updated by the
