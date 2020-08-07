@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Video from 'react-native-video';
+import Sound from 'react-native-sound';
 import {
     TouchableWithoutFeedback,
     TouchableHighlight,
@@ -8,6 +9,7 @@ import {
     StyleSheet,
     Touchable,
     Animated,
+    AppState,
     Platform,
     Easing,
     Image,
@@ -20,6 +22,11 @@ export default class VideoPlayer extends Component {
 
     constructor( props ) {
         super( props );
+
+        /**
+        * For audio playing instead of video
+        */
+        const audioOnly = props.format === "audio";
 
         /**
          * All of our values that are updated by the
@@ -96,7 +103,7 @@ export default class VideoPlayer extends Component {
             volumeWidth: 150,
             iconOffset: 7,
             seekWidth: 0,
-            ref: Video,
+            ref: this.audioOnly ? Sound : Video,
         };
 
         /**
@@ -1055,6 +1062,55 @@ export default class VideoPlayer extends Component {
     }
 
     /**
+    * Render audio/video based on props
+    */
+    renderMedia() {
+      this.audioOnly ? (
+        <Sound
+            { ...this.props }
+            ref={ videoPlayer => this.player.ref = videoPlayer }
+
+            resizeMode={ this.state.resizeMode }
+            volume={ this.state.volume }
+            paused={ this.state.paused }
+            muted={ this.state.muted }
+            rate={ this.state.rate }
+
+            onLoadStart={ this.events.onLoadStart }
+            onProgress={ this.events.onProgress }
+            onError={ this.events.onError }
+            onLoad={ this.events.onLoad }
+            onEnd={ this.events.onEnd }
+
+            style={[ styles.player.video, this.styles.videoStyle ]}
+
+            source={ this.props.source }
+        />
+      ) : (
+        <Video
+            { ...this.props }
+            ref={ videoPlayer => this.player.ref = videoPlayer }
+
+            resizeMode={ this.state.resizeMode }
+            volume={ this.state.volume }
+            paused={ this.state.paused }
+            muted={ this.state.muted }
+            rate={ this.state.rate }
+
+            onLoadStart={ this.events.onLoadStart }
+            onProgress={ this.events.onProgress }
+            onError={ this.events.onError }
+            onLoad={ this.events.onLoad }
+            onEnd={ this.events.onEnd }
+
+            style={[ styles.player.video, this.styles.videoStyle ]}
+
+            source={ this.props.source }
+        />
+      );
+    }
+
+    /**
      * Provide all of our options and render the whole component.
      */
     render() {
@@ -1064,26 +1120,7 @@ export default class VideoPlayer extends Component {
                 style={[ styles.player.container, this.styles.containerStyle ]}
             >
                 <View style={[ styles.player.container, this.styles.containerStyle ]}>
-                    <Video
-                        { ...this.props }
-                        ref={ videoPlayer => this.player.ref = videoPlayer }
-
-                        resizeMode={ this.state.resizeMode }
-                        volume={ this.state.volume }
-                        paused={ this.state.paused }
-                        muted={ this.state.muted }
-                        rate={ this.state.rate }
-
-                        onLoadStart={ this.events.onLoadStart }
-                        onProgress={ this.events.onProgress }
-                        onError={ this.events.onError }
-                        onLoad={ this.events.onLoad }
-                        onEnd={ this.events.onEnd }
-
-                        style={[ styles.player.video, this.styles.videoStyle ]}
-
-                        source={ this.props.source }
-                    />
+                    { this.renderMedia() }
                     { this.renderError() }
                     { this.renderTopControls() }
                     { this.renderLoader() }
