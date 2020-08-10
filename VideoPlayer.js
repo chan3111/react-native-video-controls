@@ -139,6 +139,7 @@ export default class VideoPlayer extends Component {
             onLoad: this._onLoadAudio.bind ( this ),
             loadAudio: this._loadAudio.bind ( this ),
           }
+          this.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad);
         }
     }
 
@@ -175,12 +176,7 @@ export default class VideoPlayer extends Component {
     */
     _loadAudio() {
       this.events.onLoadStart();
-      let state = this.state;
-
-      state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad)
       state.sound.setCategory("Playback");
-
-      this.setState( state );
     }
 
     /**
