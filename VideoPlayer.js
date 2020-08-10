@@ -1113,7 +1113,7 @@ export default class VideoPlayer extends Component {
         } else if ( this.audio ) {
           return (
             <View style={ styles.loader.container }>
-                <Image source={ require('./assets/img/audio.png')} />
+                <Image source={ require( './assets/img/audio.png' ) } />
             </View>
           );
         }
