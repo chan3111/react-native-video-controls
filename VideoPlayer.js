@@ -195,7 +195,7 @@ export default class VideoPlayer extends Component {
         );
       }, 200);
       console.log("interval set")
-      if (!!this.props.autoPlay)
+      if (this.props.startPaused)
         this.state.sound.play((success) => {
           if (success) {
 
