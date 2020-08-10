@@ -685,6 +685,14 @@ export default class VideoPlayer extends Component {
     */
 
     /**
+    * Stop playing audio when app state changes
+    */
+    _handleAppStateChange(currentAppState) {
+  		if (currentAppState === "background")
+  			this.state.sound.pause();
+  	}
+
+    /**
      * Before mounting, init our seekbar and volume bar
      * pan responders.
      */
