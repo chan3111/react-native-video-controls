@@ -139,7 +139,7 @@ export default class VideoPlayer extends Component {
             onLoad: this._onLoadAudio.bind ( this ),
             loadAudio: this._loadAudio.bind ( this ),
           }
-          this.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad);
+          this.state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad);
         }
     }
 
@@ -1093,9 +1093,9 @@ export default class VideoPlayer extends Component {
     }
 
     /**
-     * Show loading icon
+     * Show loading icon or sound icon
      */
-    renderLoader() {
+    renderIcon() {
         if ( this.state.loading ) {
             return (
                 <View style={ styles.loader.container }>
@@ -1110,6 +1110,12 @@ export default class VideoPlayer extends Component {
                     ]} />
                 </View>
             );
+        } else if ( this.audio ) {
+          return (
+            <View style={ styles.loader.container }>
+                <Image source={ require('./assets/img/audio.png')} />
+            </View>
+          );
         }
         return null;
     }
@@ -1181,7 +1187,7 @@ export default class VideoPlayer extends Component {
                     { this.renderMedia() }
                     { this.renderError() }
                     { this.renderTopControls() }
-                    { this.renderLoader() }
+                    { this.renderIcon() }
                     { this.renderBottomControls() }
                 </View>
             </TouchableWithoutFeedback>
