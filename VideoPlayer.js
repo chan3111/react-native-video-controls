@@ -171,7 +171,7 @@ export default class VideoPlayer extends Component {
     }
 
     /**
-    *
+    * Called onMount to loadup audio
     */
     _loadAudio() {
       this.events.onLoadStart();
@@ -342,7 +342,7 @@ export default class VideoPlayer extends Component {
     /**
     * Clear the audio if we are using Sound
     */
-    clearSound() {
+    clearAudioTimer() {
       this.state.sound.release();
       if (this.audio.timer !== undefined)
         clearTimeout(this.audio.timer);
@@ -738,7 +738,7 @@ export default class VideoPlayer extends Component {
     componentWillUnmount() {
         this.clearControlTimeout();
         if (this.audio)
-          this.clearSound();
+          this.clearAudioTimer();
     }
 
     /**
