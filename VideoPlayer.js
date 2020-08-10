@@ -187,24 +187,21 @@ export default class VideoPlayer extends Component {
             this.setState({currentTime: seconds})
             if ( ! this.state.seeking ) {
                 const position = this.calculateSeekerPosition();
-                console.log("position")
-                console.log(position)
                 this.setSeekerPosition( position );
             }
           }
         );
       }, 200);
       console.log("interval set")
-      if (this.props.startPaused)
-        this.state.sound.play((success) => {
-          if (success) {
+      this.state.sound.play((success) => {
+        if (success) {
 
-            this.events.onEnd()
-          } else {
-            clearTimeout(this.audio.timer);
-            this.events.onError()
-          }
-        });
+          this.events.onEnd()
+        } else {
+          clearTimeout(this.audio.timer);
+          this.events.onError()
+        }
+      });
       this.events.onLoad();
     }
 
@@ -316,6 +313,8 @@ export default class VideoPlayer extends Component {
      * Default is 15s
      */
     setControlTimeout() {
+        if (this.audio)
+          return;
         this.player.controlTimeout = setTimeout( ()=> {
             this._hideControls();
         }, this.player.controlTimeoutDelay );
@@ -440,6 +439,8 @@ export default class VideoPlayer extends Component {
      * current state.
      */
     _toggleControls() {
+        if (this.audio)
+          return;
         let state = this.state;
         state.showControls = ! state.showControls;
 
@@ -474,7 +475,6 @@ export default class VideoPlayer extends Component {
     _togglePlayPause() {
         let state = this.state;
         state.paused = ! state.paused;
-        state.
         this.setState( state );
     }
 
