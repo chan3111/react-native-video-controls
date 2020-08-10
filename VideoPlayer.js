@@ -68,6 +68,7 @@ export default class VideoPlayer extends Component {
          * Our app listeners and associated methods
          */
         this.events = {
+            handleAppStateChange: this._handleAppStateChange.bind( this ),
             onError: this.props.onError || this._onError.bind( this ),
             onEnd: this.props.onEnd || this._onEnd.bind( this ),
             onScreenTouch: this._onScreenTouch.bind( this ),
@@ -725,7 +726,7 @@ export default class VideoPlayer extends Component {
 
         if (this.audio) {
           this.events.onLoadStart();
-          AppState.addEventListener('change', this._handleAppStateChange);
+          AppState.addEventListener('change', this.events.handleAppStateChange);
         }
 
         this.setState( state );
@@ -739,7 +740,7 @@ export default class VideoPlayer extends Component {
         this.clearControlTimeout();
         if (this.audio) {
           this.clearAudioTimer();
-          AppState.removeEventListener('change', this._handleAppStateChange);
+          AppState.removeEventListener('change', this.events.handleAppStateChange);
         }
     }
 
