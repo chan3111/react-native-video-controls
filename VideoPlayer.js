@@ -723,8 +723,10 @@ export default class VideoPlayer extends Component {
         this.setVolumePosition( position );
         state.volumeOffset = position;
 
-        if (this.audio)
+        if (this.audio) {
           this.events.onLoadStart();
+          AppState.addEventListener('change', this._handleAppStateChange);
+        }
 
         this.setState( state );
     }
@@ -735,8 +737,10 @@ export default class VideoPlayer extends Component {
      */
     componentWillUnmount() {
         this.clearControlTimeout();
-        if (this.audio)
+        if (this.audio) {
           this.clearAudioTimer();
+          AppState.removeEventListener('change', this._handleAppStateChange);
+        }
     }
 
     /**
