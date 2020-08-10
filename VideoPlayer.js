@@ -135,10 +135,11 @@ export default class VideoPlayer extends Component {
         */
         if (this.props.type === "audio") {
           this.audio = {
+            timer: null,
             onLoad: this._onLoadAudio.bind ( this ),
           }
 
-          this.state.loading = true;
+          this.events.onLoadStart();
 
           this.state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad)
           this.state.sound.setCategory("Playback");
@@ -175,17 +176,30 @@ export default class VideoPlayer extends Component {
 
     _onLoadAudio( error ) {
       if (error) {
-        this.onError(error);
+        this.events.onError(error);
         console.warn("error")
         console.warn(error)
         return;
       }
-      console.warn("finished loading");
+      this.audio.timer = setInterval(() => {
+        this.state.sound.getCurrentTime(seconds => {
+            console.log("Timer is at: " + seconds);
+            this.setState({currentTime: seconds})
+            if ( ! this.state.seeking ) {
+                const position = this.calculateSeekerPosition();
+                this.setSeekerPosition( position );
+            }
+          }
+        );
+      }, 200);
+      console.log("interval set")
       this.state.sound.play((success) => {
         if (success) {
-          this.onEnd()
+
+          this.events.onEnd()
         } else {
-          this.onError()
+          clearTimeout(this.audio.timer);
+          this.events.onError()
         }
       });
       this.events.onLoad();
@@ -312,10 +326,12 @@ export default class VideoPlayer extends Component {
     }
 
     /**
-    * Clear the audio if necessary
+    * Clear the audio if we are using Sound
     */
     clearSound() {
       this.state.sound.release();
+      if (this.audio.timer !== undefined)
+        clearTimeout(this.audio.timer);
     }
 
     /**
@@ -455,6 +471,7 @@ export default class VideoPlayer extends Component {
     _togglePlayPause() {
         let state = this.state;
         state.paused = ! state.paused;
+        state.
         this.setState( state );
     }
 
@@ -584,7 +601,10 @@ export default class VideoPlayer extends Component {
     seekTo( time = 0 ) {
         let state = this.state;
         state.currentTime = time;
-        this.player.ref.seek( time );
+        if (this.audio)
+          this.state.sound.setCurrentTime( time );
+        else
+          this.player.ref.seek( time );
         this.setState( state );
     }
 
@@ -702,7 +722,8 @@ export default class VideoPlayer extends Component {
      */
     componentWillUnmount() {
         this.clearControlTimeout();
-        this.clearSound();
+        if (this.audio)
+          this.clearSound();
     }
 
     /**
@@ -1102,12 +1123,13 @@ export default class VideoPlayer extends Component {
     renderMedia() {
       if (this.audio) {
         var sound = this.state.sound;
-
         sound.setVolume(this.state.volume);
         if (this.state.muted)
           sound.setVolume(0);
         if (this.state.paused)
           sound.pause();
+        else
+          sound.play();
 
       } else {
         return (
