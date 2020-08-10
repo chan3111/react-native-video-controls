@@ -187,21 +187,24 @@ export default class VideoPlayer extends Component {
             this.setState({currentTime: seconds})
             if ( ! this.state.seeking ) {
                 const position = this.calculateSeekerPosition();
+                console.log("position")
+                console.log(position)
                 this.setSeekerPosition( position );
             }
           }
         );
       }, 200);
       console.log("interval set")
-      this.state.sound.play((success) => {
-        if (success) {
+      if (!!this.props.autoPlay)
+        this.state.sound.play((success) => {
+          if (success) {
 
-          this.events.onEnd()
-        } else {
-          clearTimeout(this.audio.timer);
-          this.events.onError()
-        }
-      });
+            this.events.onEnd()
+          } else {
+            clearTimeout(this.audio.timer);
+            this.events.onError()
+          }
+        });
       this.events.onLoad();
     }
 
