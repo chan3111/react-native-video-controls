@@ -137,9 +137,10 @@ export default class VideoPlayer extends Component {
           this.audio = {
             timer: null,
             onLoad: this._onLoadAudio.bind ( this ),
-            loadAudio: this._loadAudio.bind ( this ),
           }
+          this.state.loading = true;
           this.state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad);
+          this.state.sound.setCategory("Playback");
         }
     }
 
@@ -172,14 +173,6 @@ export default class VideoPlayer extends Component {
     }
 
     /**
-    * Called onMount to loadup audio
-    */
-    _loadAudio() {
-      this.events.onLoadStart();
-      state.sound.setCategory("Playback");
-    }
-
-    /**
     * Called when the audio file finished loading
     */
     _onLoadAudio( error ) {
@@ -191,7 +184,6 @@ export default class VideoPlayer extends Component {
       }
       this.audio.timer = setInterval(() => {
         this.state.sound.getCurrentTime(seconds => {
-            console.log("Timer is at: " + seconds);
             this.setState({currentTime: seconds})
             if ( ! this.state.seeking ) {
                 const position = this.calculateSeekerPosition();
@@ -200,7 +192,6 @@ export default class VideoPlayer extends Component {
           }
         );
       }, 200);
-      console.log("interval set")
       this.state.sound.play((success) => {
         if (success) {
 
@@ -723,6 +714,9 @@ export default class VideoPlayer extends Component {
         let state = this.state;
         this.setVolumePosition( position );
         state.volumeOffset = position;
+
+        if (this.audio)
+          this.events.onLoadStart();
 
         this.setState( state );
     }
