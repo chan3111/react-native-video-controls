@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Video from 'react-native-video';
+import Sound from 'react-native-sound';
 import {
     TouchableWithoutFeedback,
     TouchableHighlight,
@@ -8,6 +9,7 @@ import {
     StyleSheet,
     Touchable,
     Animated,
+    AppState,
     Platform,
     Easing,
     Image,
@@ -66,6 +68,7 @@ export default class VideoPlayer extends Component {
          * Our app listeners and associated methods
          */
         this.events = {
+            handleAppStateChange: this._handleAppStateChange.bind( this ),
             onError: this.props.onError || this._onError.bind( this ),
             onEnd: this.props.onEnd || this._onEnd.bind( this ),
             onScreenTouch: this._onScreenTouch.bind( this ),
@@ -127,6 +130,19 @@ export default class VideoPlayer extends Component {
             videoStyle: this.props.videoStyle || {},
             containerStyle: this.props.style || {}
         };
+
+        /**
+        * For audio playing instead of video
+        */
+        if (this.props.type === "audio") {
+          this.audio = {
+            timer: null,
+            onLoad: this._onLoadAudio.bind ( this ),
+          }
+          this.state.loading = true;
+          this.state.sound = new Sound(this.props.source.uri, Sound.MAIN_BUNDLE, this.audio.onLoad);
+          this.state.sound.setCategory("Playback");
+        }
     }
 
 
@@ -158,6 +174,38 @@ export default class VideoPlayer extends Component {
     }
 
     /**
+    * Called when the audio file finished loading
+    */
+    _onLoadAudio( error ) {
+      if (error) {
+        this.events.onError(error);
+        console.warn("error")
+        console.warn(error)
+        return;
+      }
+      this.audio.timer = setInterval(() => {
+        this.state.sound.getCurrentTime(seconds => {
+            this.setState({currentTime: seconds})
+            if ( ! this.state.seeking ) {
+                const position = this.calculateSeekerPosition();
+                this.setSeekerPosition( position );
+            }
+          }
+        );
+      }, 200);
+      this.state.sound.play((success) => {
+        if (success) {
+
+          this.events.onEnd()
+        } else {
+          clearTimeout(this.audio.timer);
+          this.events.onError()
+        }
+      });
+      this.events.onLoad();
+    }
+
+    /**
      * When load is finished we hide the load icon
      * and hide the controls. We also set the
      * video duration.
@@ -167,7 +215,7 @@ export default class VideoPlayer extends Component {
     _onLoad( data = {} ) {
         let state = this.state;
 
-        state.duration = data.duration;
+        state.duration = this.audio ? state.sound.getDuration() : data.duration;
         state.loading = false;
         this.setState( state );
 
@@ -265,6 +313,8 @@ export default class VideoPlayer extends Component {
      * Default is 15s
      */
     setControlTimeout() {
+        if (this.audio)
+          return;
         this.player.controlTimeout = setTimeout( ()=> {
             this._hideControls();
         }, this.player.controlTimeoutDelay );
@@ -275,6 +325,15 @@ export default class VideoPlayer extends Component {
      */
     clearControlTimeout() {
         clearTimeout( this.player.controlTimeout );
+    }
+
+    /**
+    * Clear the audio if we are using Sound
+    */
+    clearAudioTimer() {
+      this.state.sound.release();
+      if (this.audio.timer !== undefined)
+        clearTimeout(this.audio.timer);
     }
 
     /**
@@ -380,6 +439,8 @@ export default class VideoPlayer extends Component {
      * current state.
      */
     _toggleControls() {
+        if (this.audio)
+          return;
         let state = this.state;
         state.showControls = ! state.showControls;
 
@@ -543,7 +604,10 @@ export default class VideoPlayer extends Component {
     seekTo( time = 0 ) {
         let state = this.state;
         state.currentTime = time;
-        this.player.ref.seek( time );
+        if (this.audio)
+          this.state.sound.setCurrentTime( time );
+        else
+          this.player.ref.seek( time );
         this.setState( state );
     }
 
@@ -622,6 +686,14 @@ export default class VideoPlayer extends Component {
     */
 
     /**
+    * Stop playing audio when app state changes
+    */
+    _handleAppStateChange(currentAppState) {
+  		if (currentAppState === "background")
+  			this.state.sound.pause();
+  	}
+
+    /**
      * Before mounting, init our seekbar and volume bar
      * pan responders.
      */
@@ -652,6 +724,11 @@ export default class VideoPlayer extends Component {
         this.setVolumePosition( position );
         state.volumeOffset = position;
 
+        if (this.audio) {
+          this.events.onLoadStart();
+          AppState.addEventListener('change', this.events.handleAppStateChange);
+        }
+
         this.setState( state );
     }
 
@@ -661,6 +738,10 @@ export default class VideoPlayer extends Component {
      */
     componentWillUnmount() {
         this.clearControlTimeout();
+        if (this.audio) {
+          this.clearAudioTimer();
+          AppState.removeEventListener('change', this.events.handleAppStateChange);
+        }
     }
 
     /**
@@ -814,7 +895,7 @@ export default class VideoPlayer extends Component {
 
         const backControl = !this.props.disableBack ? this.renderBack() : this.renderNullControl();
         const volumeControl = !this.props.disableVolume ? this.renderVolume() : this.renderNullControl();
-        const fullscreenControl = !this.props.disableFullscreen ? this.renderFullscreen() : this.renderNullControl();
+        const fullscreenControl = (!this.props.disableFullscreen && !this.audio) ? this.renderFullscreen() : this.renderNullControl();
 
         return(
             <Animated.View style={[
@@ -1019,9 +1100,9 @@ export default class VideoPlayer extends Component {
     }
 
     /**
-     * Show loading icon
+     * Show loading icon or sound icon
      */
-    renderLoader() {
+    renderIcon() {
         if ( this.state.loading ) {
             return (
                 <View style={ styles.loader.container }>
@@ -1036,6 +1117,12 @@ export default class VideoPlayer extends Component {
                     ]} />
                 </View>
             );
+        } else if ( this.audio ) {
+          return (
+            <View style={ styles.loader.container }>
+                <Image source={ require('./assets/img/audio-icon.png')} />
+            </View>
+          );
         }
         return null;
     }
@@ -1055,6 +1142,46 @@ export default class VideoPlayer extends Component {
     }
 
     /**
+    * Render audio/video based on props
+    */
+    renderMedia() {
+      if (this.audio) {
+        var sound = this.state.sound;
+        sound.setVolume(this.state.volume);
+        if (this.state.muted)
+          sound.setVolume(0);
+        if (this.state.paused)
+          sound.pause();
+        else
+          sound.play();
+
+      } else {
+        return (
+          <Video
+              { ...this.props }
+              ref={ videoPlayer => this.player.ref = videoPlayer }
+
+              resizeMode={ this.state.resizeMode }
+              volume={ this.state.volume }
+              paused={ this.state.paused }
+              muted={ this.state.muted }
+              rate={ this.state.rate }
+
+              onLoadStart={ this.events.onLoadStart }
+              onProgress={ this.events.onProgress }
+              onError={ this.events.onError }
+              onLoad={ this.events.onLoad }
+              onEnd={ this.events.onEnd }
+
+              style={[ styles.player.video, this.styles.videoStyle ]}
+
+              source={ this.props.source }
+          />
+        );
+      }
+    }
+
+    /**
      * Provide all of our options and render the whole component.
      */
     render() {
@@ -1064,29 +1191,10 @@ export default class VideoPlayer extends Component {
                 style={[ styles.player.container, this.styles.containerStyle ]}
             >
                 <View style={[ styles.player.container, this.styles.containerStyle ]}>
-                    <Video
-                        { ...this.props }
-                        ref={ videoPlayer => this.player.ref = videoPlayer }
-
-                        resizeMode={ this.state.resizeMode }
-                        volume={ this.state.volume }
-                        paused={ this.state.paused }
-                        muted={ this.state.muted }
-                        rate={ this.state.rate }
-
-                        onLoadStart={ this.events.onLoadStart }
-                        onProgress={ this.events.onProgress }
-                        onError={ this.events.onError }
-                        onLoad={ this.events.onLoad }
-                        onEnd={ this.events.onEnd }
-
-                        style={[ styles.player.video, this.styles.videoStyle ]}
-
-                        source={ this.props.source }
-                    />
+                    { this.renderMedia() }
                     { this.renderError() }
                     { this.renderTopControls() }
-                    { this.renderLoader() }
+                    { this.renderIcon() }
                     { this.renderBottomControls() }
                 </View>
             </TouchableWithoutFeedback>
