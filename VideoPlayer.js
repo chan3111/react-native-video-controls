@@ -1129,11 +1129,12 @@ export default class VideoPlayer extends Component {
 
     renderError() {
         if ( this.state.error ) {
+            const errorMessage = this.props.errorMessage || "Media Unavailable";
             return (
                 <View style={ styles.error.container }>
                     <Image source={ require( './assets/img/error-icon.png' ) } style={ styles.error.icon } />
                     <Text style={ styles.error.text }>
-                        Video unavailable
+                        errorMessage
                     </Text>
                 </View>
             );
