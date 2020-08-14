@@ -1103,6 +1103,8 @@ export default class VideoPlayer extends Component {
      * Show loading icon or sound icon
      */
     renderIcon() {
+        if ( this.state.error )
+          return null;
         if ( this.state.loading ) {
             return (
                 <View style={ styles.loader.container }>
@@ -1134,7 +1136,7 @@ export default class VideoPlayer extends Component {
                 <View style={ styles.error.container }>
                     <Image source={ require( './assets/img/error-icon.png' ) } style={ styles.error.icon } />
                     <Text style={ styles.error.text }>
-                        errorMessage
+                        {errorMessage}
                     </Text>
                 </View>
             );
