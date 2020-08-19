@@ -183,6 +183,7 @@ export default class VideoPlayer extends Component {
         console.warn(error)
         return;
       }
+
       this.audio.timer = setInterval(() => {
         this.state.sound.getCurrentTime(seconds => {
             this.setState({currentTime: seconds})
@@ -193,15 +194,14 @@ export default class VideoPlayer extends Component {
           }
         );
       }, 200);
-      this.state.sound.play((success) => {
-        if (success) {
 
-          this.events.onEnd()
-        } else {
+      this.state.sound.play((success) => {
+        if (!success) {
           clearTimeout(this.audio.timer);
           this.events.onError()
         }
       });
+
       this.events.onLoad();
     }
 
@@ -439,8 +439,6 @@ export default class VideoPlayer extends Component {
      * current state.
      */
     _toggleControls() {
-        if (this.audio)
-          return;
         let state = this.state;
         state.showControls = ! state.showControls;
 
@@ -474,6 +472,13 @@ export default class VideoPlayer extends Component {
      */
     _togglePlayPause() {
         let state = this.state;
+
+        const sound = state.sound;
+        if(this.audio && state.paused)
+          sound.play();
+        else if (this.audio && !state.paused)
+          sound.pause();
+
         state.paused = ! state.paused;
         this.setState( state );
     }
@@ -689,7 +694,7 @@ export default class VideoPlayer extends Component {
     * Stop playing audio when app state changes
     */
     _handleAppStateChange(currentAppState) {
-  		if (currentAppState === "background")
+  		if (currentAppState === "background" || currentAppState === "inactive")
   			this.state.sound.pause();
   	}
 
@@ -1119,12 +1124,6 @@ export default class VideoPlayer extends Component {
                     ]} />
                 </View>
             );
-        } else if ( this.audio ) {
-          return (
-            <View style={ styles.loader.container }>
-                <Image source={ require('./assets/img/audio-icon.png')} />
-            </View>
-          );
         }
         return null;
     }
@@ -1148,16 +1147,16 @@ export default class VideoPlayer extends Component {
     * Render audio/video based on props
     */
     renderMedia() {
-      if (this.audio) {
+      if ( this.audio ) {
         var sound = this.state.sound;
         sound.setVolume(this.state.volume);
-        if (this.state.muted)
+        if ( this.state.muted )
           sound.setVolume(0);
-        if (this.state.paused)
-          sound.pause();
-        else
-          sound.play();
-
+        return (
+          <View style={ styles.loader.container }>
+              <Image source={ require('./assets/img/audio-icon.png') } />
+          </View>
+        );
       } else {
         return (
           <Video
