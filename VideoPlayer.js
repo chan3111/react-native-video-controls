@@ -933,7 +933,7 @@ export default class VideoPlayer extends Component {
 
         return this.renderControl(
             <Image
-                source={ require( './assets/img/back.png' ) }
+                source={ require( './assets/img/times-circle-regular.png' ) }
                 style={ styles.controls.back }
             />,
             this.methods.onBack,
