@@ -54,6 +54,8 @@ export default class VideoPlayer extends Component {
             duration: 0,
         };
 
+				this.appStateSubscription;
+
         /**
          * Any options that can be set at init.
          */
@@ -731,7 +733,7 @@ export default class VideoPlayer extends Component {
 
         if (this.audio) {
           this.events.onLoadStart();
-          AppState.addEventListener('change', this.events.handleAppStateChange);
+          this.appStateSubscription = AppState.addEventListener('change', this.events.handleAppStateChange);
         }
 
         this.setState( state );
@@ -745,7 +747,7 @@ export default class VideoPlayer extends Component {
         this.clearControlTimeout();
         if (this.audio) {
           this.clearAudioTimer();
-          AppState.removeEventListener('change', this.events.handleAppStateChange);
+					this.appStateSubscription ? this.appStateSubscription.remove() : (() => {})();
         }
     }
 
